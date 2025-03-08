@@ -112,7 +112,7 @@ import { useAuthStore } from '../store/auth';
 import { useRouter } from 'vue-router';
 
 export default {
-  name: 'AddReviewView',
+  name: 'AddReview',
   data() {
     return {
       restaurant: {
