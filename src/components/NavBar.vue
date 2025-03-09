@@ -5,7 +5,7 @@
         
         <div class="nav-links">
           <router-link to="/" class="nav-link">Home</router-link>
-          <router-link v-if="authStore.isAuthenticated" to="/add" class="nav-link">Add Review</router-link>
+          <router-link v-if="authStore.isAuthenticated" to="/add-review" class="nav-link">Add Review</router-link>
         </div>
         
         <div class="auth-section">

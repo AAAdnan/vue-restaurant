@@ -3,7 +3,7 @@
     <div class="welcome">
       <h1>Welcome, {{ currentUserName }}!</h1>
       <p>Track and share your restaurant experiences with each other.</p>
-      <router-link to="/add" class="add-button">Add New Restaurant Review</router-link>
+      <router-link to="/add-review" class="add-button">Add New Restaurant Review</router-link>
     </div>
     
     <div class="recent-restaurants" v-if="recentRestaurants.length > 0">
@@ -20,7 +20,7 @@
     <div class="empty-state" v-else>
       <h2>No reviews yet!</h2>
       <p>Start by adding your first restaurant review.</p>
-      <router-link to="/add" class="add-button">Add Your First Review</router-link>
+      <router-link to="/add-review" class="add-button">Add Your First Review</router-link>
     </div>
   </div>
 </template>

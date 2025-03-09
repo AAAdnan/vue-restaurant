@@ -1,80 +1,72 @@
-// src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../store/auth';
-import Home from '../views/Home.vue';
-import LoginView from '../views/LoginView.vue';
 
+// Import components
+import Directory from '../views/Directory.vue';
+import AddReview from '../views/AddReview.vue';
+import RestaurantDetail from '../views/RestaurantDetail.vue';
+import LoginView  from '../views/LoginView.vue';
+import Profile from '../views/Profile.vue';
+import NotFound from '../views/NotFound.vue';
+
+// Define routes
 const routes = [
   {
     path: '/',
-    name: 'home',
-    component: Home
+    name: 'directory',
+    component: Directory,
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/add-review',
+    name: 'add-review',
+    component: AddReview,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/restaurant/:id',
+    name: 'restaurant-detail',
+    component: RestaurantDetail,
+    meta: { requiresAuth: false }
   },
   {
     path: '/login',
     name: 'login',
     component: LoginView,
-    // Modified beforeEnter to properly handle the auth store
-    beforeEnter: (to, from, next) => {
-      // Create a new instance of the store inside the navigation guard
-      const authStore = useAuthStore();
-      
-      console.log('Login beforeEnter - isAuthenticated:', authStore.isAuthenticated);
-      
-      if (authStore.isAuthenticated) {
-        console.log('Already authenticated, redirecting to home');
-        next('/');
-      } else {
-        console.log('Not authenticated, proceeding to login');
-        next();
-      }
-    }
+    meta: { requiresAuth: false }
   },
   {
-    path: '/add',
-    name: 'add',
-    component: () => import('../views/AddReview.vue'),
+    path: '/profile',
+    name: 'profile',
+    component: Profile,
     meta: { requiresAuth: true }
   },
-  // Add a catch-all route to handle undefined routes
+  // 404 route
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/'
+    name: 'not-found',
+    component: NotFound,
+    meta: { requiresAuth: false }
   }
 ];
 
+// Create router
 const router = createRouter({
   history: createWebHistory(),
   routes
 });
 
-// Modified navigation guard
-router.beforeEach(async (to, from, next) => {
-  // Add debugging
+// Navigation guard
+router.beforeEach((to, from, next) => {
   console.log('Navigating to:', to.path);
-  
   const authStore = useAuthStore();
+  const requiresAuth = to.meta.requiresAuth;
   
-  // Make sure auth is initialized before proceeding
-  if (!authStore.initialized) {
-    console.log('Waiting for auth initialization...');
-    try {
-      await authStore.initAuth();
-    } catch (error) {
-      console.error('Failed to initialize auth:', error);
-    }
-  }
-  
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
-
   console.log('Auth required:', requiresAuth);
   console.log('Is authenticated:', authStore.isAuthenticated);
-
+  
   if (requiresAuth && !authStore.isAuthenticated) {
-    // Store the intended destination to redirect after login
-    console.log('Redirecting to login, setting redirect to:', to.fullPath);
-    localStorage.setItem('redirect_after_login', to.fullPath);
-    next({ name: 'login' });
+    next({ name: 'login', query: { redirect: to.fullPath } });
   } else {
     next();
   }

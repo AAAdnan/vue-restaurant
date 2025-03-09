@@ -2,7 +2,14 @@
   <div class="add-review">
     <h1>Add New Restaurant Review</h1>
     
-    <form @submit.prevent="submitReview" class="review-form">
+    <div v-if="!authStore.user" class="login-required">
+      <p>You must be logged in to submit a review.</p>
+      <router-link :to="{ name: 'login', query: { redirect: '/add-review' } }" class="login-button">
+        Login to Continue
+      </router-link>
+    </div>
+    
+    <form v-else @submit.prevent="submitReview" class="review-form">
       <div class="form-group">
         <label for="name">Restaurant Name *</label>
         <input 
@@ -110,6 +117,7 @@
 import { useRestaurantStore } from '../store/restaurants';
 import { useAuthStore } from '../store/auth';
 import { useRouter } from 'vue-router';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default {
   name: 'AddReview',
@@ -126,7 +134,8 @@ export default {
         photos: [],
       },
       photoFiles: [],
-      photoPreviewUrls: []
+      photoPreviewUrls: [],
+      isSubmitting: false
     };
   },
   setup() {
@@ -159,14 +168,58 @@ export default {
       this.photoPreviewUrls.splice(index, 1);
     },
     async submitReview() {
-      // Store photos as data URLs for this simple app
-      this.restaurant.photos = [...this.photoPreviewUrls];
-      
-      // Add to store with user info
-      const id = this.restaurantStore.addRestaurant(this.restaurant, this.authStore.user);
-      
-      // Navigate to the detail view
-      this.router.push({ name: 'restaurant-detail', params: { id } });
+      try {
+        // Prevent multiple submissions
+        if (this.isSubmitting) return;
+        this.isSubmitting = true;
+        
+        // Check if user is logged in
+        if (!this.authStore.user) {
+          alert('You must be logged in to save a review.');
+          this.router.push({ name: 'login', query: { redirect: '/add-review' } });
+          return;
+        }
+        
+        // Ensure rating is set if the user didn't select stars
+        if (this.restaurant.rating === 0) {
+          this.restaurant.rating = 1; // Default to 1 star if none selected
+        }
+        
+        // Upload photos to Firebase Storage
+        const photoUrls = [];
+        if (this.photoFiles.length > 0) {
+          const storage = getStorage();
+          
+          for (const file of this.photoFiles) {
+            const fileRef = storageRef(storage, `restaurant-photos/${Date.now()}-${file.name}`);
+            await uploadBytes(fileRef, file);
+            const downloadUrl = await getDownloadURL(fileRef);
+            photoUrls.push(downloadUrl);
+          }
+        }
+        
+        // Set the permanent photo URLs
+        this.restaurant.photos = photoUrls;
+        
+        // Create a properly formatted user object that matches what the store expects
+        const userForStore = {
+          id: this.authStore.user.uid,
+          given_name: this.authStore.user.displayName,
+          picture: this.authStore.user.photoURL
+        };
+        
+        // Add to store with user info
+        const id = await this.restaurantStore.addRestaurant(this.restaurant, userForStore);
+        
+        // Show success message and go to detail page
+        alert('Review added successfully!');
+        this.router.push({ name: 'restaurant-detail', params: { id } });
+      } catch (error) {
+        console.error('Error submitting review:', error);
+        alert('There was an error saving your review. Please try again.');
+      } finally {
+        this.isSubmitting = false;
+      }
     }
   }
 }
@@ -275,15 +328,51 @@ textarea {
   margin-top: 2rem;
 }
 
-.submit-button {
-  background-color: var(--primary-color);
-  color: white;
+.submit-button,
+.cancel-button {
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
   padding: 10px 20px;
   font-size: 1rem;
+}
+
+.submit-button {
+  background-color: #4CAF50;
+  color: white;
 }
 
 .cancel-button {
   background-color: #ccc;
   color: #333;
+}
+
+.login-required {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.login-required p {
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+}
+
+.login-button {
+  display: inline-block;
+  background-color: #4285F4;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.login-button:hover {
+  background-color: #3367D6;
 }
 </style>

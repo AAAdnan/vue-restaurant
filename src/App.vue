@@ -5,7 +5,7 @@
       <v-app-bar-title>Restaurant Reviews</v-app-bar-title>
       <v-spacer></v-spacer>
       <v-btn v-if="!isAuthenticated" to="/login" text>Login</v-btn>
-      <v-btn v-if="isAuthenticated" to="/add" text>Add Review</v-btn>
+      <v-btn v-if="isAuthenticated" to="/add-review" text>Add Review</v-btn>
       <v-btn v-if="isAuthenticated" @click="logout" text>Logout</v-btn>
     </v-app-bar>
 
@@ -21,23 +21,19 @@
 </template>
 
 <script>
-import { useAuthStore } from './store/auth';
+import { onMounted } from 'vue';
+import { useRestaurantStore } from './store/restaurants';
+
 
 export default {
-  name: 'App',
   setup() {
-    const authStore = useAuthStore();
-
-    const logout = () => {
-      authStore.logout();
-      // Redirect to home after logout
-      window.location.href = '/';
-    };
-
-    return {
-      isAuthenticated: () => authStore.isAuthenticated,
-      logout
-    };
+    const restaurantStore = useRestaurantStore();
+    
+    onMounted(async () => {
+      await restaurantStore.fetchRestaurants();
+    });
+    
+    return { restaurantStore };
   }
 };
 </script>
